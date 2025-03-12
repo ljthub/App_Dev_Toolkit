@@ -1,4 +1,4 @@
-# 🚀 App_Dev_Toolkit
+# 🚀 **App_Dev_Toolkit**
 
 > 基於 Docker 的 App 開發工具箱，讓 React Native 開發者可以快速配置常用後端服務
 
@@ -25,20 +25,21 @@
  - [x] 📁 檔案存儲系統 (S3 兼容)
  - [ ] 🔄 資料同步機制
  - [ ] 📤 資料匯出/匯入工具
+ - [ ] 💾 資料備份與還原
 
 ### 🔄 API 服務
  - [x] 🛣️ RESTful API 路由
- - [ ] ⚡ GraphQL 支援
- - [ ] 🔌 WebSocket 即時通訊
- - [ ] 🚧 API 限流與保護
+ - [x] ⚡ GraphQL 支援
+ - [x] 🔌 WebSocket 即時通訊
+ - [x] 🚧 API 限流與保護
  - [x] 📖 自動生成 API 文檔
 
 ### 💬 即時通訊
- - [ ] 💭 聊天系統 (個人/群組)
- - [ ] 👍 反應與互動
+ - [x] 💭 聊天系統 (個人/群組)
+ - [x] 👍 反應與互動
  - [ ] 📎 多媒體訊息支援
- - [ ] 📡 在線狀態偵測
- - [ ] 📝 已讀/未讀狀態
+ - [x] 📡 在線狀態偵測
+ - [x] 📝 已讀/未讀狀態
 
 ### 💰 支付系統
  - [ ] 💳 多種支付方式整合 (信用卡, PayPal)
@@ -72,6 +73,7 @@ docker-compose up -d
 API 文檔可在以下地址訪問：
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
+- GraphQL Playground: http://localhost:8000/api/v1/graphql/playground
 
 ## 🛠️ 技術架構
 
@@ -83,6 +85,9 @@ API 文檔可在以下地址訪問：
 - 快取: Redis
 - 訊息佇列: RabbitMQ
 - 檔案儲存: MinIO (S3 兼容)
+- API: RESTful, GraphQL
+- 即時通訊: WebSocket
+- 安全: API 限流, IP 封鎖, 請求過濾
 
 ## 👨‍💻 開發中
 
@@ -95,12 +100,16 @@ app/
 ├── api/                  # API 路由和端點
 │   └── api_v1/           # API 版本 1
 │       └── endpoints/    # API 端點模塊
+│           └── websocket/ # WebSocket 相關模塊
 ├── core/                 # 核心功能
 │   ├── config.py         # 配置設置
 │   ├── security.py       # 安全相關功能
+│   ├── middleware.py     # 中間件和請求過濾
+│   ├── limiter.py        # API 限流
 │   └── db/               # 數據庫相關
 ├── models/               # 數據模型
 ├── schemas/              # Pydantic 模型/數據驗證
+│   └── graphql/          # GraphQL 相關模型
 ├── services/             # 業務邏輯服務
 ├── main.py               # 應用程式入口點
 └── requirements.txt      # 依賴包
@@ -126,14 +135,18 @@ S3_ENDPOINT=minio:9000
 S3_ACCESS_KEY=minioadmin
 S3_SECRET_KEY=minioadmin
 S3_BUCKET=app-files
+
+# 安全設置
+ALLOWED_HOSTS=localhost,127.0.0.1
+RATE_LIMIT_DEFAULT=100/minute
+RATE_LIMIT_AUTH=20/minute
+RATE_LIMIT_SIGNUP=5/minute
 ```
 
 ## 👨‍💻 開發中功能
 
 以下功能正在開發中：
-- WebSocket 即時通訊
-- GraphQL API
-- 聊天系統
+- 聊天系統多媒體支援
 - 支付系統整合
 - 資料分析與監控
 - 多語言本地化支援

@@ -13,14 +13,5 @@ class BaseModel(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
 
-# 從這裡導入所有模型，以便 init_db 可以找到它們
-# 這樣可以確保所有的表在初始化時都被創建
-
-# 用戶模型
-from models.user import User, UserRole
-
-# 通知模型
-from models.notification import Notification
-
-# 其他模型
-# 根據需要添加導入 
+# 注意：不要在這裡導入模型，以避免循環導入
+# 相反，在 init_db.py 中導入所有模型 

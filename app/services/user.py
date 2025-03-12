@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from itsdangerous import URLSafeTimedSerializer
 
-from models.user import User, UserRole, RoleEnum
+from models.user import User, Role, RoleEnum
 from schemas.auth import UserCreate, UserInDB
 from core.security import get_password_hash
 from core.config import settings
@@ -40,12 +40,12 @@ async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
     await db.refresh(user)
     
     # 獲取預設角色
-    result = await db.execute(select(UserRole).where(UserRole.role_type == RoleEnum.USER))
+    result = await db.execute(select(Role).where(Role.role_type == RoleEnum.USER))
     default_role = result.scalars().first()
     
     # 如果默認角色不存在，創建它
     if not default_role:
-        default_role = UserRole(
+        default_role = Role(
             name="用戶",
             description="標準用戶角色",
             role_type=RoleEnum.USER

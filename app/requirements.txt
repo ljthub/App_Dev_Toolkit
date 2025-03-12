@@ -13,7 +13,7 @@ psycopg2-binary==2.9.9
 asyncpg==0.28.0
 pymongo==4.6.0
 motor==3.3.1
-redis==5.0.1
+redis==4.5.5
 aiobotocore==2.6.0
 
 # 身份驗證和安全
@@ -44,4 +44,14 @@ fastapi-pagination==0.12.11
 loguru==0.7.2
 
 # CORS 支援
-starlette==0.27.0 
+starlette==0.27.0
+
+# GraphQL 支援
+strawberry-graphql==0.211.1
+
+# WebSocket 支援
+websockets==12.0
+
+# API 限流與保護
+slowapi==0.1.8
+fastapi-limiter==0.1.5 

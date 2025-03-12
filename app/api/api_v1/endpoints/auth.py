@@ -1,9 +1,10 @@
 from datetime import timedelta
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from core.config import settings
 from core.db.session import get_db
@@ -13,7 +14,9 @@ from core.security import (
     verify_password,
     verify_totp,
     generate_totp_secret,
+    get_current_user,
 )
+from core.limiter import rate_limit
 from models.user import User
 from schemas.auth import (
     AccessToken,
@@ -26,6 +29,8 @@ from schemas.auth import (
     ResetPassword,
     ChangePassword,
 )
+from schemas.token import Token
+from schemas.user import UserResponse
 from services.user import (
     get_user_by_email,
     create_user,
@@ -61,7 +66,8 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)) ->
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/login", response_model=AccessToken)
-async def login(form_data: UserLogin, db: AsyncSession = Depends(get_db)) -> Any:
+@rate_limit(settings.RATE_LIMIT_AUTH)
+async def login(form_data: UserLogin, request: Request, db: AsyncSession = Depends(get_db)) -> Any:
     """登入並返回訪問令牌"""
     # 驗證用戶
     user = await get_user_by_email(db, form_data.email)
@@ -166,4 +172,19 @@ async def confirm_password_reset(data: ResetPassword, db: AsyncSession = Depends
     # 在真實系統中，這裡應該驗證令牌並重置密碼
     await reset_user_password(db, data.email, data.token, data.new_password)
     
-    return {"message": "密碼已重置"} 
+    return {"message": "密碼已重置"}
+
+@router.post("/signup", response_model=UserResponse)
+@rate_limit(settings.RATE_LIMIT_SIGNUP)
+async def create_user_signup(
+    *,
+    request: Request,
+    db: Session = Depends(get_db),
+    user_in: UserCreate,
+) -> Any:
+    """
+    創建新用戶
+    """
+    # ... 現有代碼 ...
+
+# ... 其他現有端點 ... 

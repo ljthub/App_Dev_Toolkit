@@ -1,11 +1,11 @@
 from fastapi import FastAPI, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 import uvicorn
 
 from core.config import settings
 from api.api_v1.api import api_router
 from core.db.init_db import init_db
+from core.middleware import setup_middlewares
+from core.limiter import setup_limiter
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -15,14 +15,8 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# 設置CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# 設置中間件
+setup_middlewares(app)
 
 # 包含API路由
 app.include_router(api_router, prefix=settings.API_V1_STR)
@@ -30,7 +24,11 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 @app.on_event("startup")
 async def startup_event():
     """應用程式啟動時執行的事件"""
+    # 初始化數據庫
     await init_db()
+    
+    # 設置 API 限流器
+    await setup_limiter(app)
 
 @app.get("/", tags=["健康檢查"])
 async def health_check():

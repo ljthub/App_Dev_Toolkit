@@ -40,7 +40,7 @@ class Notification(BaseModel):
     target_device = Column(String(255), nullable=True)  # FCM Token 或設備ID
     
     # 額外資料
-    metadata = Column(JSON, nullable=True)  # 存儲平台特定的元數據
+    notification_metadata = Column(JSON, nullable=True)  # 存儲平台特定的元數據
     
     # 跟踪狀態
     is_read = Column(Boolean, default=False)

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from api.api_v1.endpoints import auth, users, notifications, files, admin
+from api.api_v1.endpoints import auth, users, notifications, files, admin, graphql, websocket
 
 api_router = APIRouter()
 
@@ -17,4 +17,10 @@ api_router.include_router(notifications.router, prefix="/notifications", tags=["
 api_router.include_router(files.router, prefix="/files", tags=["檔案"])
 
 # 管理員路由
-api_router.include_router(admin.router, prefix="/admin", tags=["管理員"]) 
+api_router.include_router(admin.router, prefix="/admin", tags=["管理員"])
+
+# GraphQL 路由
+# api_router.include_router(graphql.router, prefix="/graphql", tags=["GraphQL"])
+
+# WebSocket 路由
+# api_router.include_router(websocket.router, prefix="/ws", tags=["WebSocket"]) 

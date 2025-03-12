@@ -1,28 +1,47 @@
-import asyncio
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 from loguru import logger
 
-from core.db.session import engine, SessionLocal
-from core.db.base import Base
 from core.config import settings
+from core.db.base import Base
+from models.user import User, Role
 
-async def init_db() -> None:
-    """初始化數據庫，創建所有表並填充初始數據"""
+# 創建異步引擎
+engine = create_async_engine(
+    str(settings.SQLALCHEMY_DATABASE_URI),
+    echo=False,
+    future=True,
+)
+
+# 創建異步會話工廠
+async_session = sessionmaker(
+    engine, expire_on_commit=False, class_=AsyncSession
+)
+
+async def init_db():
+    """初始化數據庫"""
     try:
-        # 創建所有SQLAlchemy表
+        # 創建所有表
         async with engine.begin() as conn:
-            logger.info("正在創建資料庫表...")
             await conn.run_sync(Base.metadata.create_all)
-        logger.info("資料庫表創建成功")
-
-        # 初始化MinIO (S3相容儲存)
-        await init_minio()
         
-        # 這裡可以添加其他數據庫初始化操作
-        # 例如創建管理員帳戶、填充基本數據等
+        logger.info("數據庫表已成功創建")
         
     except Exception as e:
-        logger.error(f"資料庫初始化失敗: {e}")
+        logger.error(f"初始化數據庫時出錯: {str(e)}")
         raise
+
+async def get_db():
+    """獲取數據庫會話"""
+    async with async_session() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
 
 async def init_minio():
     """初始化MinIO儲存服務，確保存儲桶存在"""

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # API 服務
   api:
@@ -13,7 +11,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/app_db
       - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=your_secret_key_here
+      - SECRET_KEY=a3f45b9c1d8e4a7f3e6b79d4e9a5c8d3e0f2b4a6d7c8e9f3b1a2c4d6e8f0a3b5
       - ENVIRONMENT=development
     depends_on:
       - db

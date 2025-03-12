@@ -2,7 +2,7 @@ from sqlalchemy import Boolean, Column, String, Integer, ForeignKey, Table, Text
 from sqlalchemy.orm import relationship
 import enum
 
-from core.db.base import BaseModel
+from core.db.base import Base
 
 # 用戶角色枚舉
 class RoleEnum(str, enum.Enum):
@@ -13,15 +13,16 @@ class RoleEnum(str, enum.Enum):
 # 用戶-角色關聯表
 user_role = Table(
     "user_role",
-    BaseModel.metadata,
+    Base.metadata,
     Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
     Column("role_id", Integer, ForeignKey("roles.id"), primary_key=True),
 )
 
-class User(BaseModel):
+class User(Base):
     """用戶模型"""
     __tablename__ = "users"
 
+    id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     username = Column(String(50), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
@@ -38,7 +39,7 @@ class User(BaseModel):
     totp_secret = Column(String(255), nullable=True)
     
     # 關聯
-    roles = relationship("UserRole", secondary=user_role, back_populates="users")
+    roles = relationship("Role", secondary=user_role, back_populates="users")
     notifications = relationship("Notification", back_populates="user")
     
     # OAuth2 相關
@@ -49,10 +50,11 @@ class User(BaseModel):
         return f"<User {self.username}>"
 
 
-class UserRole(BaseModel):
+class Role(Base):
     """角色模型"""
     __tablename__ = "roles"
 
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50), unique=True, nullable=False)
     description = Column(Text, nullable=True)
     role_type = Column(Enum(RoleEnum), nullable=False, default=RoleEnum.USER)

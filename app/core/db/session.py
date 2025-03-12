@@ -31,4 +31,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.rollback()
             raise
         finally:
-            await session.close() 
+            await session.close()
+
+# 導出 get_db 函數
+__all__ = ["get_db"] 

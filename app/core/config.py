@@ -1,5 +1,5 @@
 import secrets
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Set
 
 from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings
@@ -23,6 +23,35 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str = "App Development Toolkit"
     
+    # 環境設置
+    ENVIRONMENT: str = "development"
+    
+    # 安全設置
+    ALLOWED_HOSTS: List[str] = ["*"]
+    BLOCKED_IPS: Set[str] = set()
+    BLOCKED_USER_AGENTS: List[str] = [
+        r".*[Ss]canner.*",
+        r".*[Ss]craper.*",
+        r".*[Bb]ot.*",
+        r".*[Ss]pider.*",
+        r".*[Cc]rawler.*",
+    ]
+    BLOCKED_PATHS: List[str] = [
+        r".*\.php$",
+        r".*\.asp$",
+        r".*\.aspx$",
+        r".*\.jsp$",
+        r".*\.cgi$",
+        r".*wp-admin.*",
+        r".*wp-login.*",
+    ]
+    MAX_REQUEST_SIZE: int = 10 * 1024 * 1024  # 10MB
+    
+    # API 限流設置
+    RATE_LIMIT_DEFAULT: str = "100/minute"
+    RATE_LIMIT_AUTH: str = "20/minute"
+    RATE_LIMIT_SIGNUP: str = "5/minute"
+    
     # PostgreSQL 配置
     POSTGRES_SERVER: str = "db"
     POSTGRES_USER: str = "postgres"
@@ -31,15 +60,17 @@ class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URI: Optional[PostgresDsn] = None
 
     @field_validator("SQLALCHEMY_DATABASE_URI", mode="before")
-    def assemble_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
+    def assemble_db_connection(cls, v: Optional[str], info) -> Any:
         if isinstance(v, str):
             return v
+        
+        # 在 Pydantic V2 中，我們需要直接從類獲取值，而不是從 values 參數
         return PostgresDsn.build(
-            scheme="postgresql",
-            username=values.get("POSTGRES_USER"),
-            password=values.get("POSTGRES_PASSWORD"),
-            host=values.get("POSTGRES_SERVER"),
-            path=f"{values.get('POSTGRES_DB') or ''}",
+            scheme="postgresql+asyncpg",
+            username=cls.model_fields["POSTGRES_USER"].default,
+            password=cls.model_fields["POSTGRES_PASSWORD"].default,
+            host=cls.model_fields["POSTGRES_SERVER"].default,
+            path=f"{cls.model_fields['POSTGRES_DB'].default or ''}",
         )
 
     # MongoDB 配置
@@ -50,29 +81,33 @@ class Settings(BaseSettings):
     MONGO_URI: Optional[str] = None
 
     @field_validator("MONGO_URI", mode="before")
-    def assemble_mongo_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
+    def assemble_mongo_connection(cls, v: Optional[str], info) -> Any:
         if isinstance(v, str):
             return v
-        user = values.get("MONGO_USER")
-        password = values.get("MONGO_PASSWORD")
-        server = values.get("MONGO_SERVER")
-        db = values.get("MONGO_DB")
+        
+        # 在 Pydantic V2 中，我們需要直接從類獲取值
+        user = cls.model_fields["MONGO_USER"].default
+        password = cls.model_fields["MONGO_PASSWORD"].default
+        server = cls.model_fields["MONGO_SERVER"].default
+        db = cls.model_fields["MONGO_DB"].default
         return f"mongodb://{user}:{password}@{server}/{db}"
 
     # Redis 配置
-    REDIS_SERVER: str = "redis"
+    REDIS_HOST: str = "redis"
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
     REDIS_URI: Optional[str] = None
 
     @field_validator("REDIS_URI", mode="before")
-    def assemble_redis_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
+    def assemble_redis_connection(cls, v: Optional[str], info) -> Any:
         if isinstance(v, str):
             return v
-        server = values.get("REDIS_SERVER")
-        port = values.get("REDIS_PORT")
-        db = values.get("REDIS_DB")
-        return f"redis://{server}:{port}/{db}"
+        
+        # 在 Pydantic V2 中，我們需要直接從類獲取值
+        host = cls.model_fields["REDIS_HOST"].default
+        port = cls.model_fields["REDIS_PORT"].default
+        db = cls.model_fields["REDIS_DB"].default
+        return f"redis://{host}:{port}/{db}"
 
     # S3 / MinIO 配置
     S3_ENDPOINT: str = "minio:9000"

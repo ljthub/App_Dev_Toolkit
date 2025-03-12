@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db.session import get_db
 from core.security import get_current_user
-from models.user import User, UserRole, RoleEnum
+from models.user import User, Role, RoleEnum
 from models.notification import Notification
 
 router = APIRouter()
@@ -123,7 +123,7 @@ async def list_roles(
     current_user: User = Depends(check_admin_permission),
 ) -> Any:
     """獲取所有角色（管理員專用）"""
-    query = select(UserRole)
+    query = select(Role)
     result = await db.execute(query)
     roles = result.scalars().all()
     
@@ -149,7 +149,7 @@ async def create_role(
 ) -> Any:
     """創建新角色（管理員專用）"""
     # 檢查角色名稱是否已存在
-    existing_query = select(UserRole).where(UserRole.name == name)
+    existing_query = select(Role).where(Role.name == name)
     existing = await db.execute(existing_query)
     if existing.scalars().first():
         raise HTTPException(
@@ -158,7 +158,7 @@ async def create_role(
         )
     
     # 創建新角色
-    role = UserRole(
+    role = Role(
         name=name,
         description=description,
         role_type=role_type
@@ -195,7 +195,7 @@ async def assign_role_to_user(
         )
     
     # 獲取角色
-    role_query = select(UserRole).where(UserRole.id == role_id)
+    role_query = select(Role).where(Role.id == role_id)
     role_result = await db.execute(role_query)
     role = role_result.scalars().first()
     
