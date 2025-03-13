@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime
 import uuid
+from typing import Optional
+from pydantic import BaseModel
 
 from app.core.security import (
     verify_password, 
@@ -264,3 +266,75 @@ async def get_me(
     獲取當前登入使用者的資料
     """
     return current_user 
+
+# 用於公開重新發送驗證郵件的模型
+class PublicResendVerificationRequest(BaseModel):
+    email: str
+
+@router.post("/auth/public/resend-verification")
+async def public_resend_verification(
+    verification_request: PublicResendVerificationRequest,
+    background_tasks: BackgroundTasks,
+    email_service: EmailService = Depends(get_email_service)
+):
+    """
+    公開API：重新發送驗證電子郵件，不需要登入，但需要提供電子郵件地址
+    """
+    # 檢查電子郵件是否存在
+    user = get_user(email=verification_request.email)
+    if not user:
+        # 為了安全考慮，不透露用戶是否存在
+        return {"message": "如果電子郵件已註冊，驗證郵件已發送"}
+    
+    # 檢查使用者是否已經驗證
+    if user.is_verified:
+        # 同樣，不透露用戶已驗證
+        return {"message": "如果電子郵件已註冊，驗證郵件已發送"}
+    
+    # 發送驗證電子郵件
+    verification_token = create_verification_token(user.id)
+    verification_url = f"{settings.FRONTEND_VERIFICATION_URL}?token={verification_token}"
+    
+    email_subject = f"{settings.APP_NAME} - 電子郵件驗證"
+    email_body = f"""
+    親愛的 {user.username}，
+
+    請點擊以下連結驗證您的電子郵件：
+    {verification_url}
+    
+    此連結將在 {settings.EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS} 小時後失效。
+
+    祝您使用愉快，
+    {settings.EMAILS_FROM_NAME} 團隊
+    """
+    
+    html_content = f"""
+    <html>
+      <body>
+        <h2>{settings.APP_NAME} - 電子郵件驗證</h2>
+        <p>親愛的 <strong>{user.username}</strong>，</p>
+        <p>請點擊以下按鈕驗證您的電子郵件：</p>
+        <p>
+          <a href="{verification_url}" style="padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">
+            驗證電子郵件
+          </a>
+        </p>
+        <p>或者，您可以複製以下連結並在瀏覽器中打開：</p>
+        <p>{verification_url}</p>
+        <p>此連結將在 {settings.EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS} 小時後失效。</p>
+        <p>祝您使用愉快，<br>
+        {settings.EMAILS_FROM_NAME} 團隊</p>
+      </body>
+    </html>
+    """
+    
+    # 在背景任務中發送電子郵件
+    background_tasks.add_task(
+        email_service.send_email,
+        to=[user.email],
+        subject=email_subject,
+        body=email_body,
+        html_content=html_content
+    )
+    
+    return {"message": "如果電子郵件已註冊，驗證郵件已發送"} 

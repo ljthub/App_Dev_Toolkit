@@ -5,9 +5,9 @@
 ## 📋 功能列表
 
 ### 👤 使用者系統
- - [ ] 🔐 註冊/登入功能
- - [ ] 🔑 JWT 身份驗證
- - [ ] ✉️ Email 確認機制
+ - [x] 🔐 註冊/登入功能
+ - [x] 🔑 JWT 身份驗證
+ - [x] ✉️ Email 確認機制
 
 ### 📬 通知系統
  - [x] 📧 Email 發信功能
@@ -17,7 +17,7 @@
  - [ ] 📄 NoSQL 資料庫 (MongoDB, Redis)
 
 ### 🔄 API 服務
- - [ ] 🛣️ RESTful API 路由
+ - [x] 🛣️ RESTful API 路由
 
 
 ## 🔧 使用方法
@@ -28,6 +28,36 @@
 docker-compose up -d
 ```
 
+## 📱 Demo 應用
+
+在 `./demo` 目錄中提供了一個基於 Expo React Native 的示範應用，用於展示本工具箱的功能：
+
+### 功能演示
+- 👤 使用者註冊與登入
+- 🔑 JWT 身份驗證流程
+- ✉️ 電子郵件驗證流程
+
+### 運行 Demo
+
+1. 安裝依賴：
+```bash
+cd demo
+npm install
+```
+
+2. 啟動開發伺服器：
+```bash
+npx expo start
+```
+
+3. 使用 Expo Go 應用掃描 QR Code，或在模擬器中運行
+
+### 設定 API 連接
+
+在 `demo/constants/Config.ts` 文件中配置 API 連接資訊：
+```typescript
+export const API_URL = "http://localhost:8000";  // 調整為您的 API 伺服器位址
+```
 
 ### 關於 token.json
 
