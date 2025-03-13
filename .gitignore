@@ -3,3 +3,5 @@
 app/token.json
 client_secret.json
 token.json
+.env
+users.json
