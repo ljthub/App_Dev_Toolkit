@@ -1,6 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import uvicorn
+from typing import Dict, List, Any
+import os
+from fastapi.responses import RedirectResponse
 
 from app.api.endpoints import email_router, auth_router
 
@@ -23,9 +27,10 @@ app.add_middleware(
 app.include_router(email_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 
+# redirect to /docs
 @app.get("/")
-async def root():
-    return {"message": "歡迎使用 App_Dev_Toolkit API 服務"}
+async def redirect_to_docs():
+    return RedirectResponse(url="/docs")
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True) 
