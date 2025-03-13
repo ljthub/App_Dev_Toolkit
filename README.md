@@ -70,107 +70,12 @@
 docker-compose up -d
 ```
 
-API 文檔可在以下地址訪問：
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-- GraphQL Playground: http://localhost:8000/api/v1/graphql/playground
-
-## 🛠️ 技術架構
-
-- 容器化: Docker 🐳
-- 編排: Docker Compose
-- 前端範例: React Native
-- 後端: Python, FastAPI
-- 資料庫: MongoDB, Redis, PostgreSQL
-- 快取: Redis
-- 訊息佇列: RabbitMQ
-- 檔案儲存: MinIO (S3 兼容)
-- API: RESTful, GraphQL
-- 即時通訊: WebSocket
-- 安全: API 限流, IP 封鎖, 請求過濾
-
-## 🧰 環境變數配置
-
-應用程式使用 `.env` 文件進行配置，主要設置如下：
-
-```
-# 基本設置
-SECRET_KEY=your_secret_key_here
-ENVIRONMENT=development
-
-# 數據庫設置
-POSTGRES_SERVER=db
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=app_db
-
-# MinIO 設置
-S3_ENDPOINT=minio:9000
-S3_ACCESS_KEY=minioadmin
-S3_SECRET_KEY=minioadmin
-S3_BUCKET=app-files
-
-# 安全設置
-ALLOWED_HOSTS=localhost,127.0.0.1
-RATE_LIMIT_DEFAULT=100/minute
-RATE_LIMIT_AUTH=20/minute
-RATE_LIMIT_SIGNUP=5/minute
-```
-
-## 📧 電子郵件服務配置
-
-系統使用 Google Gmail API 發送電子郵件，需要配置 Google Cloud Platform 憑證：
-
-### 取得 Google API 憑證
-
-1. 前往 [Google Cloud Console](https://console.cloud.google.com/)
-2. 建立新專案或選擇現有專案
-3. 啟用 Gmail API
-   - 點擊 "API 和服務" > "程式庫"
-   - 搜尋 "Gmail API" 並啟用
-4. 建立 OAuth 憑證
-   - 點擊 "API 和服務" > "憑證"
-   - 點擊 "建立憑證" > "OAuth 客戶端 ID"
-   - 應用程式類型選擇 "Web 應用程式"
-   - 名稱輸入 "App Dev Toolkit Email Service"
-   - 新增授權重新導向 URI: `http://localhost:8080`
-   - 點擊 "建立"
-5. 下載 JSON 格式的憑證
-   - 在憑證頁面找到剛建立的 OAuth 客戶端 ID
-   - 點擊下載 JSON 按鈕
-   - 將檔案重命名為 `client_secret.json`
-
-### 配置 Docker Compose
-
-將下載的 `client_secret.json` 文件放在專案根目錄，然後修改 `docker-compose.yml`：
-
-```yaml
-services:
-  api:
-    # ... 其他設定 ...
-    volumes:
-      - ./app:/app
-      - ./client_secret.json:/app/client_secret.json
-    environment:
-      # ... 其他環境變數 ...
-      - GOOGLE_CLIENT_SECRET_FILE=/app/client_secret.json
-      - EMAIL_TOKEN_PATH=/app/token.json
-```
 
 ### 關於 token.json
 
 `token.json` 是 Gmail API 的 OAuth 認證令牌，用於授權系統發送電子郵件。在我們的系統中有兩種方式可以獲得：
 
-#### 1. 自動生成模擬令牌（開發環境）
-
-在開發環境中，系統會自動生成一個模擬令牌：
-
-- 啟動服務後，當系統偵測到 `token.json` 不存在時，會自動創建一個模擬令牌
-- 模擬令牌允許系統正常運行，但不會實際發送電子郵件
-- 所有"發送"的電子郵件會被記錄到日誌中，並儲存在 `app/mock_emails/` 目錄下
-- 您可以通過檢查日誌查看電子郵件內容：`docker-compose logs api | grep "模擬郵件"`
-
-#### 2. 真實 OAuth 令牌（生產環境）
+#### 1. 真實 OAuth 令牌（生產環境）
 
 如需要實際發送電子郵件（如在生產環境），請遵循以下步驟獲取真實的 OAuth 令牌：
 
@@ -221,37 +126,3 @@ services:
 5. 授權完成後，`token.json` 文件會自動保存到當前目錄
    
 6. 將生成的 `token.json` 文件複製到項目根目錄，確保 docker-compose 可以掛載它
-
-注意：OAuth 令牌有一定的有效期，通常需要定期刷新。在生產環境中，您可能需要實現令牌刷新機制，或定期手動更新令牌。
-
-## 👨‍💻 開發中功能
-
-以下功能正在開發中：
-- 聊天系統多媒體支援
-- 支付系統整合
-- 資料分析與監控
-- 多語言本地化支援
-
-歡迎提出建議和貢獻！
-
-## 📂 專案結構
-
-```
-app/
-├── api/                  # API 路由和端點
-│   └── api_v1/           # API 版本 1
-│       └── endpoints/    # API 端點模塊
-│           └── websocket/ # WebSocket 相關模塊
-├── core/                 # 核心功能
-│   ├── config.py         # 配置設置
-│   ├── security.py       # 安全相關功能
-│   ├── middleware.py     # 中間件和請求過濾
-│   ├── limiter.py        # API 限流
-│   └── db/               # 數據庫相關
-├── models/               # 數據模型
-├── schemas/              # Pydantic 模型/數據驗證
-│   └── graphql/          # GraphQL 相關模型
-├── services/             # 業務邏輯服務
-├── main.py               # 應用程式入口點
-└── requirements.txt      # 依賴包
-```

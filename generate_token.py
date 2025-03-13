@@ -24,7 +24,7 @@ creds = flow.run_local_server(
 )
 
 # 保存令牌到文件
-with open("app/token.json", "w") as token_file:
+with open("token.json", "w") as token_file:
     token_file.write(creds.to_json())
 
 print("OAuth 令牌已成功生成並保存至 token.json")

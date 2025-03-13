@@ -1,1 +1,0 @@
-# GraphQL schemas module
