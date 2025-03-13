@@ -33,6 +33,7 @@ from schemas.token import Token
 from schemas.user import UserResponse
 from services.user import (
     get_user_by_email,
+    get_user_by_username,
     create_user,
     activate_user,
     send_verification_email,
@@ -45,12 +46,20 @@ router = APIRouter()
 @router.post("/register", response_model=AccessToken)
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)) -> Any:
     """註冊新用戶並返回訪問令牌"""
-    # 檢查用戶是否已存在
+    # 檢查電子郵件是否已存在
     existing_user = await get_user_by_email(db, user_data.email)
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="此電子郵件已被註冊",
+        )
+    
+    # 檢查用戶名是否已存在
+    existing_username = await get_user_by_username(db, user_data.username)
+    if existing_username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="此用戶名已被使用",
         )
     
     # 建立新用戶
@@ -103,7 +112,7 @@ async def login(form_data: UserLogin, request: Request, db: AsyncSession = Depen
     
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.post("/verify-email", response_model=dict)
+@router.get("/verify-email", response_model=dict)
 async def verify_email(data: UserVerifyEmail, db: AsyncSession = Depends(get_db)) -> Any:
     """確認用戶電子郵件"""
     # 在真實系統中，這裡應該驗證令牌並啟用用戶帳戶

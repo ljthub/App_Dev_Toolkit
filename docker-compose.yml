@@ -1,88 +1,59 @@
+version: '3.8'
+
 services:
   # API 服務
   api:
-    build: 
+    build:
       context: ./app
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
     volumes:
       - ./app:/app
+      - ./client_secret.json:/app/client_secret.json
+      - ./.env:/app/.env
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/app_db
-      - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=a3f45b9c1d8e4a7f3e6b79d4e9a5c8d3e0f2b4a6d7c8e9f3b1a2c4d6e8f0a3b5
-      - ENVIRONMENT=development
+      - EMAIL_TOKEN_PATH=/app/token.json
     depends_on:
       - db
       - redis
-      - mongo
-    restart: unless-stopped
+      - minio
+    restart: always
 
   # PostgreSQL 資料庫
   db:
-    image: postgres:15
+    image: postgres:14
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-app_db}
     ports:
       - "5432:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=app_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-
-  # MongoDB NoSQL 資料庫
-  mongo:
-    image: mongo:6
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=mongo
-      - MONGO_INITDB_ROOT_PASSWORD=mongo
-    volumes:
-      - mongo_data:/data/db
-    restart: unless-stopped
 
   # Redis 快取與任務佇列
   redis:
     image: redis:7
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
-    restart: unless-stopped
-
-  # RabbitMQ 訊息佇列
-  rabbitmq:
-    image: rabbitmq:3-management
     ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASS=guest
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    restart: unless-stopped
+      - "6379:6379"
 
   # Minio (S3 相容儲存服務)
   minio:
     image: minio/minio
+    volumes:
+      - minio_data:/data
     ports:
       - "9000:9000"
       - "9001:9001"
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
-    volumes:
-      - minio_data:/data
+      - MINIO_ROOT_USER=${S3_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${S3_SECRET_KEY:-minioadmin}
     command: server /data --console-address ":9001"
-    restart: unless-stopped
 
 volumes:
   postgres_data:
-  mongo_data:
   redis_data:
-  rabbitmq_data:
   minio_data: 

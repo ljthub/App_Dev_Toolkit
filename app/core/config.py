@@ -1,4 +1,5 @@
 import secrets
+import json
 from typing import Any, Dict, List, Optional, Union, Set
 
 from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, field_validator
@@ -11,15 +12,22 @@ class Settings(BaseSettings):
     # 60 minutes * 24 hours * 8 days = 8 days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     # CORS設置
-    CORS_ORIGINS: List[AnyHttpUrl] = []
+    CORS_ORIGINS: Union[List[str], str] = ["*"]
 
     @field_validator("CORS_ORIGINS", mode="before")
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
-            return v
-        raise ValueError(v)
+        if isinstance(v, str):
+            if v == "*":
+                return ["*"]
+            elif v.startswith("[") and v.endswith("]"):
+                # 嘗試作為 JSON 解析
+                try:
+                    return json.loads(v)
+                except:
+                    pass
+            # 否則按逗號分隔
+            return [i.strip() for i in v.split(",") if i.strip()]
+        return v
 
     PROJECT_NAME: str = "App Development Toolkit"
     
@@ -28,6 +36,16 @@ class Settings(BaseSettings):
     
     # 安全設置
     ALLOWED_HOSTS: List[str] = ["*"]
+    
+    @field_validator("ALLOWED_HOSTS", mode="before")
+    def assemble_allowed_hosts(cls, v: Union[str, List[str]]) -> List[str]:
+        if isinstance(v, str):
+            if v == "*":
+                return ["*"]
+            # 按逗號分隔
+            return [i.strip() for i in v.split(",") if i.strip()]
+        return v
+        
     BLOCKED_IPS: Set[str] = set()
     BLOCKED_USER_AGENTS: List[str] = [
         r".*[Ss]canner.*",
@@ -115,6 +133,13 @@ class Settings(BaseSettings):
     S3_SECRET_KEY: str = "minioadmin"
     S3_BUCKET: str = "app-files"
     S3_REGION: str = "us-east-1"
+    
+    # 前端 URL
+    FRONTEND_URL: str = "http://localhost:8000/api/v1/"
+    
+    # Google API 配置
+    GOOGLE_CLIENT_SECRET_FILE: Optional[str] = None
+    EMAIL_TOKEN_PATH: str = "token.json"
     
     # Email 設置
     SMTP_TLS: bool = True

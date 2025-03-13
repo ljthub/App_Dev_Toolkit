@@ -1,13 +1,16 @@
 from typing import Optional, List, Any
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from itsdangerous import URLSafeTimedSerializer
+from loguru import logger
 
 from models.user import User, Role, RoleEnum
 from schemas.auth import UserCreate, UserInDB
 from core.security import get_password_hash
 from core.config import settings
+from services.email import send_verification_email as send_email_verification
+from services.email import send_password_reset_email as send_email_reset
 
 # 創建一個加密令牌的序列化器
 serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
@@ -15,6 +18,11 @@ serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
 async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
     """根據電子郵件獲取用戶"""
     result = await db.execute(select(User).where(User.email == email))
+    return result.scalars().first()
+
+async def get_user_by_username(db: AsyncSession, username: str) -> Optional[User]:
+    """根據用戶名獲取用戶"""
+    result = await db.execute(select(User).where(User.username == username))
     return result.scalars().first()
 
 async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[User]:
@@ -54,8 +62,11 @@ async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
         await db.commit()
         await db.refresh(default_role)
     
-    # 分配角色給用戶
-    user.roles.append(default_role)
+    # 使用直接的SQL語句關聯用戶和角色
+    await db.execute(
+        text("INSERT INTO user_role (user_id, role_id) VALUES (:user_id, :role_id)"),
+        {"user_id": user.id, "role_id": default_role.id}
+    )
     await db.commit()
     
     return user
@@ -99,21 +110,38 @@ async def send_verification_email(user: User) -> None:
     # 生成驗證令牌
     token = serializer.dumps(user.email, salt="email-verify")
     
-    # 在實際應用中，這裡應該連接到電子郵件服務
-    # 例如使用 fastapi-mail 或其他電子郵件客戶端
-    # 這裡只是模擬郵件發送
-    
-    print(f"發送驗證郵件到 {user.email} 的令牌是: {token}")
+    try:
+        # 使用電子郵件服務發送驗證郵件
+        await send_email_verification(
+            email=user.email,
+            username=user.username,
+            token=token
+        )
+        logger.info(f"已發送驗證郵件到 {user.email}")
+    except Exception as e:
+        # 如果發送失敗，記錄錯誤但不中斷流程
+        logger.error(f"發送驗證郵件失敗: {str(e)}")
+        # 備用方案: 仍然打印令牌用於開發測試
+        logger.debug(f"驗證令牌: {token}")
 
 async def send_password_reset_email(user: User) -> None:
     """發送密碼重置郵件"""
     # 生成重置令牌
     token = serializer.dumps(user.email, salt="password-reset")
     
-    # 在實際應用中，這裡應該連接到電子郵件服務
-    # 這裡只是模擬郵件發送
-    
-    print(f"發送密碼重置郵件到 {user.email} 的令牌是: {token}")
+    try:
+        # 使用電子郵件服務發送重置郵件
+        await send_email_reset(
+            email=user.email,
+            username=user.username,
+            token=token
+        )
+        logger.info(f"已發送密碼重置郵件到 {user.email}")
+    except Exception as e:
+        # 如果發送失敗，記錄錯誤但不中斷流程
+        logger.error(f"發送密碼重置郵件失敗: {str(e)}")
+        # 備用方案: 仍然打印令牌用於開發測試
+        logger.debug(f"重置令牌: {token}")
 
 async def reset_user_password(db: AsyncSession, email: str, token: str, new_password: str) -> None:
     """重置用戶密碼"""

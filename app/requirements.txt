@@ -19,6 +19,8 @@ aiobotocore==2.6.0
 # 身份驗證和安全
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+greenlet==2.0.2
 pyotp==2.9.0
 itsdangerous==2.1.2
 
@@ -30,6 +32,12 @@ fastapi-mail==1.4.1
 
 # 推播通知
 firebase-admin==6.2.0
+
+# Google API
+google-auth==2.27.0
+google-auth-oauthlib==1.2.0
+google-auth-httplib2==0.1.1
+google-api-python-client==2.117.0
 
 # 開發工具
 pytest==7.4.3

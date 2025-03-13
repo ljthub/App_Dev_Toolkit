@@ -6,6 +6,7 @@ from api.api_v1.api import api_router
 from core.db.init_db import init_db
 from core.middleware import setup_middlewares
 from core.limiter import setup_limiter
+from services.email_init import initialize_email_service
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -29,6 +30,9 @@ async def startup_event():
     
     # 設置 API 限流器
     await setup_limiter(app)
+    
+    # 初始化電子郵件服務
+    await initialize_email_service()
 
 @app.get("/", tags=["健康檢查"])
 async def health_check():
