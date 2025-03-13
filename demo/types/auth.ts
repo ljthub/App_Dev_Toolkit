@@ -1,11 +1,12 @@
 export interface User {
   id: string;
-  email: string;
   username: string;
+  email: string;
   is_active: boolean;
   is_verified: boolean;
   created_at: string;
-  updated_at: string | null;
+  updated_at?: string;
+  last_login?: string;
 }
 
 export interface Token {
@@ -16,6 +17,7 @@ export interface Token {
 export interface LoginRequest {
   username: string;
   password: string;
+  remember?: boolean;
 }
 
 export interface RegisterRequest {

@@ -21,6 +21,33 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 驗證已存儲 token 的有效性
+  const validateToken = async (storedToken: string) => {
+    try {
+      const userResponse = await fetch(`${API_URL}${API_ROUTES.ME}`, {
+        headers: {
+          'Authorization': `Bearer ${storedToken}`,
+        },
+      });
+      
+      if (userResponse.ok) {
+        const userData: User = await userResponse.json();
+        await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(userData));
+        setUser(userData);
+        setToken(storedToken);
+        return true;
+      } else {
+        // Token 無效或過期，清除存儲的認證信息
+        await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+        await AsyncStorage.removeItem(AUTH_USER_KEY);
+        return false;
+      }
+    } catch (error) {
+      console.error('驗證 Token 時發生錯誤:', error);
+      return false;
+    }
+  };
+
   // 在應用啟動時從 AsyncStorage 加載用戶數據
   useEffect(() => {
     const loadUserData = async () => {
@@ -28,9 +55,18 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         const storedToken = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
         const storedUser = await AsyncStorage.getItem(AUTH_USER_KEY);
         
-        if (storedToken && storedUser) {
-          setToken(storedToken);
-          setUser(JSON.parse(storedUser));
+        if (storedToken) {
+          console.log('發現已存儲的 token，正在驗證...');
+          const isValid = await validateToken(storedToken);
+          
+          if (!isValid && storedUser) {
+            // 顯示已過期的消息
+            const userData = JSON.parse(storedUser);
+            Alert.alert(
+              '登入已過期',
+              `${userData.username}，您的登入狀態已過期，請重新登入。`
+            );
+          }
         }
       } catch (error) {
         console.error('加載使用者數據時發生錯誤:', error);
@@ -41,6 +77,28 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     
     loadUserData();
   }, []);
+
+  // 定期檢查 token 有效性（例如每30分鐘）
+  useEffect(() => {
+    let tokenCheckInterval: NodeJS.Timeout;
+    
+    if (token) {
+      tokenCheckInterval = setInterval(async () => {
+        console.log('正在檢查 token 有效性...');
+        const isValid = await validateToken(token);
+        if (!isValid) {
+          // Token 無效，清除計時器
+          clearInterval(tokenCheckInterval);
+        }
+      }, 30 * 60 * 1000); // 30分鐘檢查一次
+    }
+    
+    return () => {
+      if (tokenCheckInterval) {
+        clearInterval(tokenCheckInterval);
+      }
+    };
+  }, [token]);
 
   // 登入功能
   const login = async (data: LoginRequest) => {
@@ -78,14 +136,35 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       
       const userData: User = await userResponse.json();
       
-      // 存儲數據
-      await AsyncStorage.setItem(AUTH_TOKEN_KEY, tokenData.access_token);
-      await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(userData));
+      // 如果用戶選擇「記住我」，則將 token 保存在 AsyncStorage
+      if (data.remember !== false) {
+        await AsyncStorage.setItem(AUTH_TOKEN_KEY, tokenData.access_token);
+        await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(userData));
+        console.log('用戶已選擇「記住我」，token 已保存');
+      } else {
+        // 如果用戶沒有選擇「記住我」，則僅在內存中保存 token，不使用 AsyncStorage
+        console.log('用戶未選擇「記住我」，token 僅保存在內存中');
+        // 可以選擇在這裡設置一個定時器，在一段時間後自動登出
+        setTimeout(() => {
+          logout();
+          Alert.alert('登入已過期', '您的登入已過期，請重新登入。');
+        }, 8 * 60 * 60 * 1000); // 假設設置為8小時後過期
+      }
       
       setToken(tokenData.access_token);
       setUser(userData);
       
-      Alert.alert('成功', '登入成功');
+      // 顯示用戶特定信息
+      Alert.alert(
+        '登入成功', 
+        `歡迎回來，${userData.username}！\n\n` +
+        `帳號狀態: ${userData.is_active ? '啟用' : '停用'}\n` +
+        `電子郵件: ${userData.email}\n` +
+        `驗證狀態: ${userData.is_verified ? '已驗證' : '未驗證'}`
+      );
+      
+      // 登入成功後導航到首頁
+      router.replace('/');
     } catch (error) {
       Alert.alert('錯誤', error instanceof Error ? error.message : '登入時發生錯誤');
     } finally {
@@ -118,9 +197,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         params: { email: data.email }
       });
       
-      // 移除自動登入邏輯
+      // 可以選擇在註冊後自動登入
       // await login({
-      //   username: data.username,
+      //   username: data.email, // 使用電子郵件作為登入使用者名稱
       //   password: data.password
       // });
     } catch (error) {
@@ -137,8 +216,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       await AsyncStorage.removeItem(AUTH_USER_KEY);
       setToken(null);
       setUser(null);
+      Alert.alert('已登出', '您已成功登出系統');
     } catch (error) {
       console.error('登出時發生錯誤:', error);
+      Alert.alert('錯誤', '登出時發生錯誤');
     }
   };
 

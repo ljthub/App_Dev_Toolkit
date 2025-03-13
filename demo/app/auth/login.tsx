@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TextInput, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, TextInput, Text, TouchableOpacity, ActivityIndicator, Switch } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 export default function LoginScreen() {
   const { login, isLoading } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
 
   const validate = () => {
@@ -28,7 +31,11 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (validate()) {
-      await login({ username, password });
+      await login({ 
+        username, 
+        password,
+        remember: rememberMe  // 傳遞記住我選項
+      });
     }
   };
 
@@ -37,32 +44,52 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.formContainer}>
-        <Text style={styles.title}>登入</Text>
+        <View style={styles.logoContainer}>
+          <FontAwesome name="user-circle" size={70} color="#4e5ae8" />
+          <Text style={styles.title}>登入</Text>
+        </View>
         
         <View style={styles.inputGroup}>
           <Text style={styles.label}>使用者名稱</Text>
-          <TextInput
-            style={styles.input}
-            value={username}
-            onChangeText={setUsername}
-            placeholder="請輸入使用者Email"
-            autoCapitalize="none"
-          />
+          <View style={styles.inputWrapper}>
+            <FontAwesome name="envelope" size={20} color="#aaa" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              value={username}
+              onChangeText={setUsername}
+              placeholder="請輸入使用者Email"
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+          </View>
           {errors.username ? <Text style={styles.errorText}>{errors.username}</Text> : null}
         </View>
         
         <View style={styles.inputGroup}>
           <Text style={styles.label}>密碼</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="請輸入密碼"
-            secureTextEntry
-          />
+          <View style={styles.inputWrapper}>
+            <FontAwesome name="lock" size={20} color="#aaa" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="請輸入密碼"
+              secureTextEntry
+            />
+          </View>
           {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+        </View>
+
+        <View style={styles.rememberContainer}>
+          <Switch
+            value={rememberMe}
+            onValueChange={setRememberMe}
+            trackColor={{ false: '#d1d1d1', true: '#a7b1fc' }}
+            thumbColor={rememberMe ? '#4e5ae8' : '#f4f3f4'}
+          />
+          <Text style={styles.rememberText}>記住我</Text>
         </View>
         
         <TouchableOpacity
@@ -84,7 +111,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -107,12 +134,15 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 25,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 20,
-    textAlign: 'center',
+    marginTop: 15,
   },
   inputGroup: {
     marginBottom: 15,
@@ -122,17 +152,35 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     color: '#333',
   },
-  input: {
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 5,
     padding: 10,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
     fontSize: 16,
   },
   errorText: {
     color: 'red',
     fontSize: 14,
     marginTop: 5,
+  },
+  rememberContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  rememberText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#555',
   },
   button: {
     backgroundColor: '#4e5ae8',
